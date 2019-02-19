@@ -167,6 +167,36 @@ instance-ssh() {
   done
 }
 
+
+instance-ssh-bastion() {
+  instance_ids=$(__bma_read_inputs $@)
+  [[ -z "$instance_ids" ]] && __bma_usage "instance-id [instance-id]" && return 1
+  [ -t 0 ] || exec </dev/tty # reattach keyboard to STDIN
+
+  for instance_id in $instance_ids; do
+
+    vpc_name=$(instance-vpc "$instance_id" | awk '{print $1}')
+
+    local bastion_user=${BASTION_USER:-${BMA_DEFAULT_BASTION_USER:-bastion}}
+    local bastion_host=$(stack-exports | grep "bastion-${vpc_name}" | awk '{print $2}')
+    local bastion_key="bastion-${vpc_name}"
+
+    local target_user=ec2-user
+    local target_host=$(instance-ssh-details "$instance_id" | awk '{print $3}')
+    local target_key=$(instance-ssh-details "$instance_id" | awk '{print $2}')
+
+#  cat << EOF
+    ssh                                     \
+      -o "IdentitiesOnly yes"               \
+      -o "IdentityFile ~/.ssh/$bastion_key" \
+      -o "IdentityFile ~/.ssh/$target_key"  \
+      -J "${bastion_user}@${bastion_host}"  \
+      "${target_user}@${target_host}"
+# EOF
+  done
+}
+
+
 instance-ssh-details() {
   # returns the details needed to SSH into an instance
   local instance_ids="$(__bma_read_inputs $@)"
