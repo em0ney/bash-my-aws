@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# log-functions
+#
+# CloudWatch Logs
+
+loggroups() {
+  local filters=$(__bma_read_filters $@)
+
+  aws logs describe-log-groups    \
+    --query 'logGroups[].[
+               logGroupName,
+               creationTime,
+               metricFilterCount,
+               storedBytes]'      \
+    --output text |
+  sort --key 2 |
+  column --table --table-right 3,4
+}
+
+
