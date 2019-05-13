@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# table-functions
+
+tables() {
+  local filters=$(__bma_read_filters $@)
+
+  aws dynamodb list-tables     \
+    --query 'TableNames[].[@]' \
+    --output text |
+  grep -E -- "$filters" |
+  sort --key 1          |
+  column --table --table-right 3,4
+}

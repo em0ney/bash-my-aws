@@ -14,7 +14,8 @@ loggroups() {
                metricFilterCount,
                storedBytes]'      \
     --output text |
-  sort --key 2 |
+  grep -E -- "$filters" |
+  sort --key 2          |
   column --table --table-right 3,4
 }
 
