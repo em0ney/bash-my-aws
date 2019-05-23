@@ -4,6 +4,9 @@
 #
 # List, run, start, stop and ssh to Amazon AWS EC2 instances
 
+# shellcheck disable=SC2155
+
+
 instances() {
   local instance_ids=$(__bma_read_inputs)
   local filters=$(__bma_read_filters $@)
