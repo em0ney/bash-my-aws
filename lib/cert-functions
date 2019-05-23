@@ -2,8 +2,10 @@
 #
 # cert-functions
 
+# shellcheck disable=SC2155
+
 certs() {
-  local filters=$(__bma_read_filters $@)
+  local filters=$(__bma_read_filters "$@")
 
   local include_arn_bit=''
   [[ -n ${include_arn:-} ]] && include_arn_bit="CertificateArn,"
@@ -32,18 +34,18 @@ certs() {
 # Same as certs() but with the ARN in first column
 certs-arn() {
   local include_arn=true
-  certs $@
+  certs "$@"
 }
 
 
 cert-users() {
-  local cert_arns="$(__bma_read_inputs $@)"
+  local cert_arns=$(__bma_read_inputs "$@")
   [[ -z "$cert_arns" ]] && __bma_usage "cert-arn [cert-arn]" && return 1
 
   local cert_arns
   for cert_arn in $cert_arns; do
     aws acm describe-certificate    \
-      --certificate-arn ${cert_arn} \
+      --certificate-arn "$cert_arn" \
       --query "Certificate.InUseBy[].[
         @, \`$cert_arn\`
       ]
@@ -55,7 +57,7 @@ cert-users() {
 
 
 cert-delete() {
-  local cert_arns="$(__bma_read_inputs $@)"
+  local cert_arns=$(__bma_read_inputs "$@")
   [[ -z "$cert_arns" ]] && __bma_usage "cert-arn [cert-arn]" && return 1
 
   echo "You are about to delete the following certificates:"
@@ -68,7 +70,7 @@ cert-delete() {
   then
     local cert_arn
     for cert_arn in $cert_arns; do
-      aws acm delete-certificate --certificate-arn $cert_arn
+      aws acm delete-certificate --certificate-arn "$cert_arn"
     done
   fi
 }
