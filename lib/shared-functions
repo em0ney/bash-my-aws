@@ -4,18 +4,18 @@
 #
 # Used by bash-my-aws functions to work with stdin and arguments.
 
+# XXX Can we remove __bma_read_inputs and put it into functions to hydrate?
+# XXX This would remove issue of whether we can move $@ to first position
+#
+# local instances=$(echo $@ $(__bma_read_stdin))
+
+# XXX Can we move $@ to first?
 __bma_read_inputs() {
-  echo $(__bma_read_stdin) $@ |
-    sed -E 's/\ +$//'         |
-    sed -E 's/^\ +//'
+  echo $(__bma_read_stdin) $@
 }
 
 __bma_read_stdin() {
-  [[ -t 0 ]] ||
-    cat                  |
-      awk '{ print $1 }' |
-      tr '\n' ' '        |
-      sed 's/\ $//'
+  [[ -t 0 ]] || awk '{ print $1 }'
 }
 
 # Construct a string to be passed to `grep -E`
