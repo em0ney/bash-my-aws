@@ -4,6 +4,8 @@
 #
 # List Amazon Machine Images
 
+# shellcheck disable=SC2155
+
 # Usage: images [owner] [image-id] [image-id]...
 #
 # owner defaults to `self` or can one or more of:
@@ -15,7 +17,7 @@ images() {
   # Trialing a funky new way of grabbing resource ids from input
   # As normal, you can pipe resource ids in as first token on each line
   # We treat all args that don't start with ami- as owner identifiers
-  local inputs=$(__bma_read_inputs $@) 
+  local inputs=$(__bma_read_inputs "$@")
   local image_ids=$(echo -n "$inputs" | tr ' ' '\n' | grep ami- | tr '\n' ' ')
   local owners=$(echo -n "$inputs" | tr ' ' '\n' | grep -v ami- | tr '\n' ' ')
 
@@ -25,9 +27,9 @@ images() {
   # Pro: Easier for eyes to scan final column for names(?)
   # Con: Using this pattern for instances() would put name past 80 char point
   # Con: Migrating instances() to this output is A Big Change (not made lightly)
-  aws ec2 describe-images                                            \
-    $([[ -n "$image_ids" ]] && echo --image-ids "${image_ids}")  \
-    $([[ -n "$owners" || -z "$image_ids" ]] && echo --owners "${owners:-self}") \
+  aws ec2 describe-images                                                         \
+    "$([[ -n "$image_ids" ]] && echo --image-ids "${image_ids}")"                 \
+    "$([[ -n "$owners" || -z "$image_ids" ]] && echo --owners "${owners:-self}")" \
     --query "
       sort_by(Images, &CreationDate)[].[
         ImageId,
@@ -41,7 +43,7 @@ images() {
 
 
 image-deregister() {
-  local image_ids=$(__bma_read_inputs $@)
+  local image_ids=$(__bma_read_inputs "$@")
   [[ -z "${image_ids}" ]] && __bma_usage "image_id" && return 1
 
   local image_id

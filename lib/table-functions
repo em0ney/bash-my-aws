@@ -2,8 +2,10 @@
 #
 # table-functions
 
+# shellcheck disable=SC2155
+
 tables() {
-  local filters=$(__bma_read_filters $@)
+  local filters=$(__bma_read_filters "$@")
 
   aws dynamodb list-tables     \
     --query 'TableNames[].[@]' \
