@@ -247,7 +247,7 @@ instance-tags() {
   # returns the tags applied instances
   local instance_ids="$(__bma_read_inputs $@)"
   [[ -z "$instance_ids" ]] && __bma_usage "instance-id [instance-id]" && return 1
-  
+
   aws ec2 describe-instances                                            \
     $([[ -n ${instance_ids} ]] && echo --instance-ids ${instance_ids})  \
     --query "
@@ -258,6 +258,40 @@ instance-tags() {
     --output text                                                       |
   column -s$'\t' -t
 }
+
+
+instance-tag () {
+  local tag=$1;
+  shift 1;
+  [[ -z "${tag}" ]] && __bma_usage "tag-key instance [instance]" && return 1;
+  local instance_ids=$(__bma_read_inputs $@);
+  aws ec2 describe-instances                                            \
+    $([[ -n ${instance_ids} ]] && echo --instance-ids ${instance_ids})  \
+    --query "
+      Reservations[].Instances[].[
+        InstanceId,
+        join(' ', [Tags[?Key=='$tag'].[join('=',[Key,Value])][]][])
+      ]"                                                                \
+    --output text                                                       |
+  column -s$'\t' -t
+}
+
+instance-tag-apply () {
+  local tag_key=$1
+  local tag_value=$2
+  shift 2
+  local usage_msg="tag-key tag-value stack [stack]"
+  [[ -z "$tag_key" ]]    && __bma_usage $usage_msg && return 1
+  [[ -z "$tag_value" ]] && __bma_usage $usage_msg && return 1
+
+  local instance_ids=$(__bma_read_inputs $@);
+  [[ -z "$instance_ids" ]] && __bma_usage $usage_msg && return 1
+
+  aws ec2 create-tags                          \
+    --resources $instance_ids                  \
+    --tags "Key=${tag_key},Value=${tag_value}"
+}
+
 
 instance-terminate() {
   local instance_ids="$(__bma_read_inputs $@)"
