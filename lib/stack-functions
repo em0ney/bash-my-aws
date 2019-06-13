@@ -92,7 +92,7 @@ stack-cancel-update() {
 }
 
 stack-create() {
-  local stack template params # values set by _bma_stack_args()
+  local stack template params tags # values set by _bma_stack_args()
   _bma_stack_args $@
   if [[ $? -ne 0 ]]; then
     __bma_usage "stack [template-file] [parameters-file] \
@@ -560,7 +560,7 @@ stack-diff(){
 #
 _bma_stack_diff_template() {
   # report changes which would be made to stack if template were applied
-  local stack template params # values set by _bma_stack_args()
+  local stack template params tags # values set by _bma_stack_args()
   _bma_stack_args $@
   [[ $? -ne 0 ]] && return 1
 
@@ -589,7 +589,7 @@ _bma_stack_diff_template() {
 #
 _bma_stack_diff_params() {
   # report on what changes would be made to stack by applying params
-  local stack template params # values set by _bma_stack_args()
+  local stack template params tags # values set by _bma_stack_args()
   _bma_stack_args $@
   [[ $? -ne 0 ]] && return 1
 
@@ -660,6 +660,7 @@ _bma_stack_args(){
       stack=$(_bma_derive_stack_from_params ${params:-$1})
       template=$(_bma_derive_template_from_params ${params:-$1})
       params="${1}"
+      tags=$(_bma_derive_tags_from_stack_and_template $stack $template)
 
     # If it's a stack
     elif [[ ! $1 =~ [.] ]]; then
@@ -667,6 +668,7 @@ _bma_stack_args(){
       stack="${1}"
       template=$(_bma_derive_template_from_stack $stack)
       params=$(_bma_derive_params_from_stack_and_template $stack $template)
+      tags=$(_bma_derive_tags_from_stack_and_template $stack $template)
 
     # If it's a template
     elif [[ ! $1 =~ -params[-.] && $1 =~ .json|.yaml|.yml  ]]; then
@@ -674,6 +676,7 @@ _bma_stack_args(){
       stack=$(_bma_derive_stack_from_template ${template:-$1})
       template=${1}
       params=$(_bma_derive_params_from_template $template)
+      tags=$(_bma_derive_tags_from_stack_and_template $stack $template)
     fi
 
   else
@@ -684,7 +687,7 @@ _bma_stack_args(){
     params=$(_bma_stack_params_arg $@)
   fi
 
-  [[ -n "${BMA_DEBUG:-}" ]] && echo "stack='$stack' template='$template' params='$params'"
+  [[ -n "${BMA_DEBUG:-}" ]] && echo "stack='$stack' template='$template' params='$params' tags='$tags'"
 
   if [[ -z ${stack} ]]; then
     __bma_error "Stack name not provided."
@@ -694,7 +697,7 @@ _bma_stack_args(){
     __bma_error "Could not find params file (${params})."
   else
     # Display calling (or current if none) with expanded arguments
-    echo "Resolved arguments: $stack $template $params"
+    echo "Resolved arguments: $stack $template $params $tags"
   fi
 }
 
@@ -757,6 +760,38 @@ _bma_derive_stack_from_template(){
   basename "${template%.*}"
 }
 
+# Look for params file based on stack and template
+_bma_derive_tags_from_stack_and_template() {
+  local stack=$1
+  local template=$2
+  [[ -z ${stack} || -z ${template} ]] && __bma_usage "stack template" && return 1
+  # XXX Usage
+
+  # Strip path and extension from template
+  local template_slug=$(basename $template | sed 's/\.[^.]*//')
+  local template_env="${stack#${template_slug}-}"
+
+  # Deduce params filename from stack and template names
+
+  local target_dir
+  local tags_file
+
+  for target_dir in . tags; do
+    for tags_file in                               \
+      "${template_slug}-tags-${template_env}.json" \
+      "${template_slug}-tags.json"                 \
+      "tags-${template_env}.json"                  \
+      "tags.json"
+    do
+      candidate="${target_dir}/$tags_file"
+      [[ -n "${BMA_DEBUG:-}" ]] && echo $candidate >&2
+      if [[ -f "$candidate" ]]; then
+        echo $candidate
+        break 3
+      fi
+    done
+  done
+}
 
 _bma_derive_template_from_params(){
   local params=$1
@@ -847,6 +882,17 @@ _bma_stack_params_arg() {
   local params=${3:-$(echo $stack | sed "s/\($(basename $template .json)\)\(.*\)/\1-params\2.json/")};
   if [ -f "${params}" ]; then
     echo $params
+  fi
+}
+
+_bma_stack_tags_arg() {
+  # determine name of params file to use
+  local stack="$(_bma_stack_name_arg $@)"
+  local template="$(_bma_stack_template_arg $@)"
+  local params="$(_bma_stack_params_arg $@)"
+  local tags=${4:-$(echo $stack | sed "s/\($(basename $template .json)\)\(.*\)/\1-tags\2.json/")};
+  if [ -f "$tags" ]; then
+    echo $tags
   fi
 }
 
