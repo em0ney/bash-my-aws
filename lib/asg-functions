@@ -177,7 +177,11 @@ asg-processes_suspended() {
         AutoScalingGroupName,
         SuspendedProcesses
       ]"                                       \
+<<<<<<< HEAD
     --output text    |
+=======
+    --output text                              |
+>>>>>>> Add asg-tags(), asg-tag()
   column -s$'\t' -t
 }
 
@@ -223,6 +227,7 @@ asg-stack() {
   column -s$'\t' -t
 }
 
+
 asg-scaling-activities() {
   # show all scaling activities
   local asg_names=$(__bma_read_inputs "$@")
@@ -235,5 +240,60 @@ asg-scaling-activities() {
       --output json
   done
 }
+
+
+asg-tags() {
+  # returns the tags applied autoscaling groups
+  local asg_names=$(__bma_read_inputs $@)
+  [[ -z "$asg_names" ]] && __bma_usage "auto-scaling-group [auto-scaling-group]" && return 1
+
+  aws autoscaling describe-auto-scaling-groups                               \
+    $([[ -n "$asg_names" ]] && echo --auto-scaling-group-names "$asg_names") \
+    --query "
+      AutoScalingGroups[].[
+        AutoScalingGroupName,
+        join(' ', [Tags[].[join('=',[Key,Value])][]][])
+      ]"                                                                     \
+    --output text    |
+  column -s$'\t' -t
+}
+
+
+asg-tag () {
+  local tag=$1;
+  shift 1;
+  [[ -z "${tag}" ]] && __bma_usage "tag-key auto-scaling-group [auto-scaling-group]" && return 1;
+
+  local asg_names=$(__bma_read_inputs $@)
+  [[ -z "$asg_names" ]] && __bma_usage "auto-scaling-group [auto-scaling-group]" && return 1
+
+  aws autoscaling describe-auto-scaling-groups                               \
+    $([[ -n "$asg_names" ]] && echo --auto-scaling-group-names "$asg_names") \
+    --query "
+      AutoScalingGroups[].[
+        AutoScalingGroupName,
+        join(' ', [Tags[?Key=='$tag'].[join('=',[Key,Value])][]][])
+      ]"                                                                     \
+    --output text    |
+  column -s$'\t' -t
+}
+
+
+# asg-tag-apply () {
+#   local tag_key=$1
+#   local tag_value=$2
+#   shift 2
+#   local usage_msg="tag-key tag-value auto-scaling-group [auto-scaling-group]"
+#   [[ -z "$tag_key" ]]    && __bma_usage $usage_msg && return 1
+#   [[ -z "$tag_value" ]] && __bma_usage $usage_msg && return 1
+# 
+#   local asg_names=$(__bma_read_inputs $@)
+#   [[ -z "$asg_names" ]] && __bma_usage $usage_msg && return 1
+# 
+#   aws ec2 create-tags                          \
+#     --resources $asg_names                     \
+#     --tags "Key=${tag_key},Value=${tag_value}"
+# }
+
 
 # vim: ft=sh
