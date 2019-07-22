@@ -177,11 +177,7 @@ asg-processes_suspended() {
         AutoScalingGroupName,
         SuspendedProcesses
       ]"                                       \
-<<<<<<< HEAD
-    --output text    |
-=======
     --output text                              |
->>>>>>> Add asg-tags(), asg-tag()
   column -s$'\t' -t
 }
 
