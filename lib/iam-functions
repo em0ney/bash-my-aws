@@ -2,7 +2,6 @@
 #
 # iam-functions
 
-
 roles() {
   local filters=$(__bma_read_filters $@)
 
